@@ -1,0 +1,106 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" class="card" style="min-height:650px;">
+	<el-form size="small" ref="form" :model="form" :rules="rules" label-width="90px" >
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="机器人token" prop="token">
+							<el-input  v-model="form.token" autoComplete="off" clearable  placeholder="请输入机器人token"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="新成员欢迎语" prop="hy">
+							<el-input  v-model="form.hy" autoComplete="off" clearable  placeholder="请输入新成员欢迎语"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="机器人管理员" prop="gl">
+							<el-input  v-model="form.gl" autoComplete="off" clearable  placeholder="请输入机器人管理员TG账号"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<div>请先填写机器人token后保存设置,再点击初始化机器人！</div>
+					</el-col>
+				</el-row>
+		<el-form-item>
+			<el-button size="small" type="primary" @click="submit">保存设置</el-button>
+			<el-button size="small" type="primary" @click="submitb">初始化机器人</el-button>
+		</el-form-item>
+	</el-form>
+</el-card>
+</div>
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data(){
+		return {
+			form: {
+				token:'',
+				hy:'',
+				gl:'',
+			},
+			loading:false,
+			rules: {
+			}
+		}
+	},
+	mounted(){
+		axios.post(base_url + '/Robotconfig/getInfo').then(res => {
+			if(res.data.status == 200){
+				this.form = JSON.stringify(res.data.data) == '[]' ? {} : res.data.data
+			}
+		})
+	},
+	methods: {
+		submit(){
+			this.$refs['form'].validate(valid => {
+				if(valid) {
+					this.loading = true
+					axios.post(base_url + '/Robotconfig/index',this.form).then(res => {
+						if(res.data.status == 200){
+							this.$message({message: res.data.msg, type: 'success'})
+						}else{
+							this.loading = false
+							this.$message.error(res.data.msg)
+						}
+					}).catch(()=>{
+						this.loading = false
+					})
+				}
+			})
+		},
+		//初始化机器人
+		submitb(){
+		    if(this.form.token!=''){
+		        this.loading = true
+				axios.post('/index/tg/set',{token:this.form.token}).then(res => {
+				    console.log(res);
+					if(res.data.status == 200){
+						this.$message({message: '初始化成功', type: 'success'})
+					}else{
+						this.loading = false
+						this.$message.error('初始化失败')
+					}
+				}).catch(()=>{
+					this.loading = false
+				})
+		    }else{
+		        this.$message.error('机器人token不能为空')
+		    }
+		}
+	}
+})
+</script>
+{/block}

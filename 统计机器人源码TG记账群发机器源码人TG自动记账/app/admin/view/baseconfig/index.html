@@ -1,0 +1,169 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" class="card" style="min-height:650px;">
+	<el-form size="small" ref="form" :model="form" :rules="rules" label-width="90px" >
+	<el-tabs v-model="activeName">
+		<el-tab-pane style="padding-top:10px"  label="基本信息" name="基本信息">
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="站点名称" prop="site_title">
+							<el-input  v-model="form.site_title" autoComplete="off" clearable  placeholder="请输入站点名称"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="站点logo" prop="logo">
+							<Upload size="small"    file_type="image" :image.sync="form.logo"></Upload>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="站点关键词" prop="keyword">
+							<Tag :tag_list.sync="form.keyword"></Tag>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="站点描述" prop="descrip">
+							<el-input  type="textarea" autoComplete="off" v-model="form.descrip"  :autosize="{ minRows: 2, maxRows: 4}" clearable placeholder="请输入站点描述"/>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="站点版权" prop="copyright">
+							<el-input  v-model="form.copyright" autoComplete="off" clearable  placeholder="请输入站点版权"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+		</el-tab-pane>
+		<el-tab-pane style="padding-top:10px"  label="上传配置" name="上传配置">
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="上传配置" prop="filesize">
+							<el-input  v-model="form.filesize" autoComplete="off" clearable  placeholder="请输入上传配置"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="文件类型" prop="filetype">
+							<el-input  v-model="form.filetype" autoComplete="off" clearable  placeholder="请输入文件类型"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="水印状态" prop="water_status">
+							<el-radio-group v-model="form.water_status">
+								<el-radio :label="'1'">正常</el-radio>
+								<el-radio :label="'0'">禁用</el-radio>
+							</el-radio-group>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="水印位置" prop="type">
+							<el-select style="width:100%" v-model="form.water_position" filterable clearable placeholder="请选择水印位置">
+								<el-option key="0" label="左上角水印" :value="'1'"></el-option>
+								<el-option key="1" label="上居中水印" :value="'2'"></el-option>
+								<el-option key="2" label="右上角水印" :value="'3'"></el-option>
+								<el-option key="3" label="左居中水印" :value="'4'"></el-option>
+								<el-option key="4" label="居中水印" :value="'5'"></el-option>
+								<el-option key="5" label="右居中水印" :value="'6'"></el-option>
+								<el-option key="6" label="左下角水印" :value="'7'"></el-option>
+								<el-option key="7" label="下居中水印" :value="'8'"></el-option>
+								<el-option key="8" label="右下角水印" :value="'9'"></el-option>
+							</el-select>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="水印透明度" prop="water_alpha">
+							<el-slider v-model="form.water_alpha"></el-slider>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="绑定域名" prop="domain">
+							<el-input  v-model="form.domain" autoComplete="off" clearable  placeholder="请输入绑定域名"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+		</el-tab-pane>
+	</el-tabs>
+		<el-form-item>
+			<el-button size="small" type="primary" @click="submit">保存设置</el-button>
+		</el-form-item>
+	</el-form>
+</el-card>
+</div>
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data(){
+		return {
+			form: {
+				site_title:'',
+				logo:'',
+				keyword:[],
+				descrip:'',
+				copyright:'',
+				filesize:'0',
+				filetype:'',
+				water_status:1,
+				domain:'',
+			},
+			loading:false,
+			activeName:'基本信息',
+			rules: {
+			}
+		}
+	},
+	mounted(){
+		axios.post(base_url + '/Baseconfig/getInfo').then(res => {
+			if(res.data.status == 200){
+				this.form = JSON.stringify(res.data.data) == '[]' ? {} : res.data.data
+				this.setDefaultVal('keyword')
+			}
+		})
+	},
+	methods: {
+		submit(){
+			this.$refs['form'].validate(valid => {
+				if(valid) {
+					this.loading = true
+					axios.post(base_url + '/Baseconfig/index',this.form).then(res => {
+						if(res.data.status == 200){
+							this.$message({message: res.data.msg, type: 'success'})
+						}else{
+							this.loading = false
+							this.$message.error(res.data.msg)
+						}
+					}).catch(()=>{
+						this.loading = false
+					})
+				}
+			})
+		},
+		setDefaultVal(key){
+			if(this.form[key] == null || this.form[key] == ''){
+				this.form[key] = []
+			}
+		},
+	}
+})
+</script>
+{/block}

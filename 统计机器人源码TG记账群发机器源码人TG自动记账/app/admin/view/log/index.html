@@ -1,0 +1,229 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="用户名">
+			<el-input id="username" v-model="searchData.username"  style="width:150px;" placeholder="请输入用户名"></el-input>
+		</el-form-item>
+		<el-form-item label="创建时间">
+			<el-date-picker value-format="yyyy-MM-dd HH:mm:ss" type="daterange" v-model="searchData.create_time" clearable range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
+		</el-form-item>
+		<el-form-item label="类型">
+			<el-select style="width:150px" v-model="searchData.type" filterable clearable placeholder="请选择">
+				<el-option key="0" label="登录日志" value="1"></el-option>
+				<el-option key="1" label="操作日志" value="2"></el-option>
+				<el-option key="2" label="异常日志" value="3"></el-option>
+			</el-select>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('admin.access'))}','{:session('admin.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"  @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="id"  label="编号" show-overflow-tooltip width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="application_name"  label="应用名" show-overflow-tooltip width="100">
+	</el-table-column>
+	<el-table-column align="center"  property="username"  label="用户名" show-overflow-tooltip width="100">
+	</el-table-column>
+	<el-table-column align="left"  property="url"  label="请求url" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="ip"  label="客户端ip" show-overflow-tooltip width="200">
+	</el-table-column>
+	<el-table-column align="center"  property="create_time"  label="创建时间" show-overflow-tooltip width="200">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.create_time)}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="type"  label="类型" show-overflow-tooltip width="200">
+		<template slot-scope="scope">
+			<el-tag type="info" v-if="scope.row.type == '1'" size="mini" effect="dark">登录日志</el-tag>
+			<el-tag type="warning" v-if="scope.row.type == '2'" size="mini" effect="dark">操作日志</el-tag>
+			<el-tag type="danger" v-if="scope.row.type == '3'" size="mini" effect="dark">异常日志</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="90">
+		<template slot-scope="scope">
+			<div v-if="scope.row.id">
+				<el-button v-if="checkPermission('/admin/Log/delete.html','{:implode(",",session("admin.access"))}','{:session("admin.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--导出弹窗-->
+<el-dialog title="导出进度条" :visible="dumpshow" :before-close="closedialog" width="500px">
+	<el-progress :percentage="percentage"></el-progress>
+</el-dialog>
+
+</div>
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/xlsx/xlsx.core.min.js"></script>
+<script src="__PUBLIC__/components/admin/log/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			dialog: {
+				detailDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'删除',color:'danger',access:'/admin/Log/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'查看详情',color:'info',access:'/admin/Log/detail.html',icon:'el-icon-view',disabled:'single',clickname:'detail'},
+				{name:'导出',color:'warning',access:'/admin/Log/dumpdata.html',icon:'el-icon-download',disabled:'',clickname:'dumpdata'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:true,
+			list: [],
+			detailInfo:{},
+			exceldata:[],
+			dumppage:1,
+			ws:{},
+			dumpshow:false,
+			percentage:0,
+			filename:'',
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Log/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.id ? row.id : this.ids.join(',')
+				axios.post(base_url + '/Log/delete',{id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {id:row.id ? row.id : this.ids.join(',')}
+		},
+		dumpdata(){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.dumpshow = true
+				this.confirmdumpdata()
+			}).catch(() => {})
+		},
+		confirmdumpdata(){
+			let param = {page:this.dumppage,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,{id:this.ids.join(',')},this.urlobj)
+			axios.post(base_url + '/Log/dumpdata',param).then(res => {
+				if(res.data.data && res.data.data.length > 0){
+					if(this.dumppage == 1){
+						this.exceldata.push(res.data.header)
+					}
+					res.data.data.forEach((item) => {
+						this.exceldata.push(Object.values(item))
+					})
+					this.percentage = res.data.percentage
+					this.filename = res.data.filename
+					this.ws = XLSX.utils.aoa_to_sheet(this.exceldata)
+					this.dumppage = this.dumppage + 1
+					this.confirmdumpdata()
+				}else{
+					let wb = XLSX.utils.book_new()
+					XLSX.utils.book_append_sheet(wb, this.ws)
+					XLSX.writeFile(wb, this.filename)
+					this.dumpshow = false
+					this.dumppage = 1
+					this.percentage = 0
+				}
+			})
+		},
+		closedialog(){
+			this.dumpshow = false
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

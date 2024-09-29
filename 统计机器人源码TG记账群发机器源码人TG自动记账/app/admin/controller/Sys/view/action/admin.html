@@ -1,0 +1,280 @@
+{extend name='view/common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+	<el-card shadow="never" style="min-height:650px;">
+		<div style="border-bottom:1px solid #ebeef5; padding-bottom:15px; font-size:14px;" class="clearfix">
+			<span>{{menu_title}} 方法列表 (支持拖动排序)</span>
+			<el-button size="small" @click="backup" type="primary" icon="el-icon-back" style="float:right">返回</el-button>
+		</div>
+		<el-row style="margin-bottom:12px; margin-top:11px;">
+			<el-col :span="21">
+				<el-button type="success" size="mini" icon="el-icon-plus" @click="dialog.addDialogStatus = true">创建</el-button>
+				<el-button type="danger" size="mini"  icon="el-icon-delete" :disabled="multiple" @click="deleteAction(ids)">删除</el-button>
+				<el-button type="info" size="mini"  icon="el-icon-edit-outline"  @click="create">生成代码</el-button>
+				<el-select size="small" style="margin-left:5px; width:150px;" class="select" multiple collapse-tags v-model="select_actions" placeholder="选择方法">
+					<el-option v-for="(item,i) in default_actions" :key="i" :label="item.name" :value="item.type"></el-option>
+				</el-select>
+				<el-button type="primary" size="mini" style="margin-left:5px;" icon="el-icon-check" @click="quckCreateAction">快速创建</el-button>
+			</el-col>
+			<el-col :span="3" style="text-align:right">
+				<table-tool :expand_status="false" @refesh_list="loadlist" ></table-tool>
+			</el-col>
+		</el-row>
+
+		<el-row>
+			<el-table row-key="id" :header-cell-style="{ background: '#eef1f6', color: '#606266' }" :row-class-name="rowClass" v-loading="loading" ref="multipleTable" border class="eltable" :data="list" @selection-change="selection"  @row-click="handleRowClick" style="width: 100%"  >
+				<el-table-column align="center" type="selection" width="42"></el-table-column>
+				<el-table-column property="name" label="操作名称">
+					<template slot-scope="scope">
+						<el-input size="mini" placeholder="操作名称" @blur.stop="update(scope.row,'name')" v-model="scope.row.name"></el-input>
+					</template>
+				</el-table-column>
+				<el-table-column property="action_name" label="方法名称">
+					<template slot-scope="scope">
+						<el-input size="mini" placeholder="方法名称" @blur.stop="update(scope.row,'action_name')" v-model="scope.row.action_name"></el-input>
+					</template>
+				</el-table-column>
+				<el-table-column property="type" width="150" label="方法类型">
+					<template slot-scope="scope">
+						<el-select v-model="scope.row.type" size="mini" @change="update(scope.row,'type')" clearable filterable placeholder="请选择">
+							<el-option v-for="item in action" :key="item.name" :label="item.name" :value="item.type"></el-option>
+						</el-select>
+					</template>
+				</el-table-column>
+				<el-table-column align="center" property="server_create_status" width="90" label="方法生成">
+					<template slot-scope="scope">
+						<el-switch @change="update(scope.row,'server_create_status')" :active-value="1" :inactive-value="0" v-model="scope.row.server_create_status"></el-switch>
+					</template>
+				</el-table-column>
+				<el-table-column align="center" property="vue_create_status" width="90" label="vue生成">
+					<template slot-scope="scope">
+						<el-switch @change="update(scope.row,'vue_create_status')" :active-value="1" :inactive-value="0" v-model="scope.row.vue_create_status"></el-switch>
+					</template>
+				</el-table-column>
+				<el-table-column align="center" property="group_button_status" width="90" label="按钮组显示">
+					<template slot-scope="scope">
+						<el-switch @change="update(scope.row,'group_button_status')" :active-value="1" :inactive-value="0" v-model="scope.row.group_button_status"></el-switch>
+					</template>
+				</el-table-column>
+				<el-table-column align="center" property="list_button_status" label="按钮列表显示">
+				  <template slot-scope="scope">
+					<el-switch @change="update(scope.row,'list_button_status')" :active-value="1" :inactive-value="0" v-model="scope.row.list_button_status"></el-switch>
+				  </template>
+				</el-table-column>
+				<el-table-column property="button_color" width="120" label="按钮背景色">
+					<template slot-scope="scope">
+						<el-select v-model="scope.row.button_color" @change="update(scope.row,'button_color')" clearable size="mini" filterable placeholder="请选择">
+							<el-option key="1" style="background:#409eff" label="primary" value="primary"></el-option>
+							<el-option key="2" style="background:#67c23a" label="success" value="success"></el-option>
+							<el-option key="3" style="background:#909399" label="info" value="info"></el-option>
+							<el-option key="4" style="background:#e6a23c" label="warning" value="warning"></el-option>
+							<el-option key="5" style="background:#f56c6c" label="danger" value="danger"></el-option>
+						</el-select>
+					</template>
+				</el-table-column>
+				<el-table-column align="center" property="dialog_size" label="配置信息">
+					<template slot-scope="scope">
+						<el-input v-if="scope.row.type == 7" style="width:80px" size="mini" placeholder="状态值" @blur.stop="update(scope.row,'status_val')" v-model="scope.row.status_val"></el-input>
+						<el-input v-else style="width:80px" size="mini" placeholder="弹窗大小" @blur.stop="update(scope.row,'dialog_size')" v-model="scope.row.dialog_size"></el-input>
+					</template>
+				</el-table-column>
+				<el-table-column align="center" property="sortid" width="80" label="排序">
+					<template slot-scope="scope">
+						<el-input style="width:52px" @blur.stop="update(scope.row,'sortid')"  size="mini" placeholder="排序" v-model="scope.row.sortid"></el-input>
+					</template>
+				</el-table-column>
+				<el-table-column :fixed="false" label="操作" width="135">
+					<template slot-scope="scope">
+						<el-button size="mini" style="padding:7px 5px" type="primary" icon="el-icon-edit-outline" @click="editor(scope.row)">修改</el-button>
+						<el-button size="mini" style="padding:7px 5px" slot="reference" icon="el-icon-delete" @click="deleteAction(scope.row)" type="danger">删除</el-button>
+					</template>
+				</el-table-column>
+			</el-table>
+			<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="loadlist" />
+		</el-row>
+	</el-card>
+</div>
+
+<admin-add :show.sync="dialog.addDialogStatus" menuid="{$menu_id}" :action="action" size="small" @refesh_list="loadlist"></admin-add>
+
+<admin-update :show.sync="dialog.updateDialogStatus" menu_id="{$menu_id}" :info="info" :action="action" size="small" @refesh_list="loadlist"></admin-update>
+{/block}
+		
+{block name="script"}
+<script src="__PUBLIC__/components/sys/action.js"></script>
+<script src="__PUBLIC__/assets/js/Sortable.min.js"></script>
+<script src="__PUBLIC__/assets/js/app.js"></script>
+
+<script>
+new Vue({
+	el: '#app',
+	data(){
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+			},
+			menu_title:'',
+			ids: {},
+			single:true,
+			multiple: true,
+			list: [],
+			action:[],
+			apiaction:[],
+			info:{},
+			select_actions:[],
+			default_actions:[],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total: 50,
+			},
+		};
+	},
+	methods: {
+		editor(row) {
+			let id = row.id ? row.id : this.ids.join(',')
+			axios.post(base_url+'/Sys.Base/getActionInfo',{id:id,menu_id:'{$menu_id}'}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.info = res.data.data
+				}else{
+					this.$message.error('获取信息失败!')
+				}
+			})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex){
+			this.$refs.multipleTable.toggleRowSelection(row)
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		backup(){
+			location.href = base_url+'/Sys.Base/menu?appid={$appid}'
+		},
+		deleteAction(row) {
+			this.$confirm('确定删除吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.id ? row.id : this.ids
+				axios.post(base_url+'/Sys.Base/deleteAction',{id:ids,menu_id:'{$menu_id}'}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: '操作成功', type: 'success'})
+						this.loadlist()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		update(row,field){
+			axios.post(base_url+'/Sys.Base/updateActionExt',{id:row.id,[field]:row[field]}).then(res => {
+				if(res.data.status !== 200){
+					this.$message.error(res.data.msg)
+				}else{
+					this.$message({message: '操作成功', type: 'success'})
+				}
+			})
+		},
+		quckCreateAction(){
+			if(this.select_actions.length == 0){
+				this.$message.error('请选择创建方法!')
+			}else{
+				this.$confirm('确定创建吗?', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+					type: 'warning'
+				}).then(() => {
+					axios.post(base_url+'/Sys.Base/quckCreateAction',{actions:this.select_actions,menu_id:'{$menu_id}'}).then(res => {
+						if(res.data.status == 200){
+							this.loadlist()
+							this.select_actions = []
+							this.$message({message: res.data.exits_status?'操作成功,部分方法已存在 无法创建!':'操作成功!', type: 'success'})
+						}else{
+							this.$message.error(res.data.msg)
+						}
+					})
+				}).catch(() => {})
+			}
+		},
+		create(){
+			this.$confirm('确定生成吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				axios.post(base_url+'/Sys.Base/create',{menu_id:'{$menu_id}'}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: '操作成功', type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		loadlist() { 
+			let param = {
+				limit:this.page_data.limit,
+				page:this.page_data.page,
+				menu_id:'{$menu_id}'
+			}
+			this.loading = true
+			axios.post(base_url+'/Sys.Base/actionList',param).then(res => {
+				this.menu_title = res.data.menu_title
+				this.list = res.data.data.data
+				this.action =  res.data.actionList.filter(item=>item.show_admin)
+				this.apiaction =  res.data.actionList.filter(item=>item.show_api)
+				this.default_actions = res.data.actionList.filter(item=>item.default_create)
+				this.page_data.total = res.data.data.total
+				this.loading = false
+			})
+		},
+		rowDrop() {
+			const el = this.$refs.multipleTable.$el.querySelectorAll('.el-table__body-wrapper > table > tbody')[0]
+			this.sortable = Sortable.create(el, {
+				ghostClass: 'sortable-ghost',
+				setData: function (dataTransfer) {
+					dataTransfer.setData('Text', '')
+				},
+				onEnd: e => {
+					const targetRow = this.list.splice(e.oldIndex, 1)[0]
+					this.list.splice(e.newIndex, 0, targetRow)
+					let currentId = this.list[e.newIndex].id
+					let preId,nextId
+					if( this.list[e.newIndex-1]){
+						preId = this.list[e.newIndex-1].id
+					}else {
+						preId = ""
+					}
+					if( this.list[e.newIndex+1]){
+						nextId = this.list[e.newIndex+1].id
+					}else {
+						nextId = ""
+					}
+					axios.post(base_url+'/Sys.Base/updateActionSort',{currentId:currentId,preId:preId,nextId:nextId,menu_id:'{$menu_id}'}).then(res => {
+						this.loadlist()
+						this.$message({message: '操作成功', type: 'success'})
+					})
+				}
+			})
+		},
+	},
+	mounted() {
+		this.loadlist()
+		this.rowDrop()
+	},
+})
+</script>
+{/block}

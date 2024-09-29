@@ -1,0 +1,216 @@
+{extend name='view/common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+	<el-card shadow="never" style="min-height:650px;">
+		<div style="border-bottom:1px solid #ebeef5; padding-bottom:15px; font-size:14px;" class="clearfix">
+			<span>{{menu_title}} 字段列表 (支持拖动排序)</span>
+			<el-button size="small" @click="backup" type="primary" icon="el-icon-back" style="float:right">返回</el-button>
+		</div>
+
+		<el-row style="margin-bottom:10px; margin-top:11px;">
+			<el-col :span="21">
+				<el-button type="success" size="mini" icon="el-icon-plus"  @click="dialog.addDialogStatus = true">新增</el-button>
+				<el-button type="danger" size="mini"  icon="el-icon-delete" :disabled="multiple" @click="deleteField(ids)">删除</el-button>
+			</el-col>
+			<el-col :span="3" style="text-align:right">
+				<table-tool :expand_status="false" @refesh_list="loadlist" ></table-tool>
+			</el-col>
+		</el-row>
+
+		<el-row>
+			<el-table row-key="id" :header-cell-style="{ background: '#eef1f6', color: '#606266' }" :row-class-name="rowClass" v-loading="loading" ref="multipleTable" border class="eltable" :data="list" @selection-change="selection"  @row-click="handleRowClick" style="width: 100%">
+				<el-table-column align="center" type="selection" width="42"></el-table-column>
+				<el-table-column align="center" property="id" label="编号" width="70"></el-table-column>
+				<el-table-column property="title"  label="字段标题">
+					<template slot-scope="scope">
+						<el-input  size="mini" placeholder="字段标题" @blur.stop="updateFieldExt(scope.row,'title')" v-model="scope.row.title"></el-input>
+					</template>
+				</el-table-column>
+				<el-table-column property="field" label="字段名称">
+					<template slot-scope="scope">
+						<el-input size="mini" placeholder="字段名称" @blur.stop="updateField(scope.row,'field')" v-model="scope.row.field"></el-input>
+					</template>
+				</el-table-column>
+				<el-table-column property="type" label="字段类型">
+					<template slot-scope="scope">
+						<el-select v-model="scope.row.type" size="mini" @change="updateFieldExt(scope.row,'type')" filterable placeholder="请选择">
+							<el-option v-for="(item,i) in field" :key="i" :label="item.name" :value="item.type"></el-option>
+						</el-select>
+					</template>
+				</el-table-column>
+				<el-table-column align="center" property="list_show" label="状态">
+					<template slot-scope="scope">
+						<el-switch :active-value="2" :inactive-value="0" @change="updateFieldExt(scope.row,'list_show')" v-model="scope.row.list_show"></el-switch>
+					</template>
+				</el-table-column>
+				<el-table-column width="90" align="center" property="sortid" label="排序">
+					<template slot-scope="scope">
+						<el-input style="width:60px;" @blur.stop="updateFieldExt(scope.row,'sortid')"  size="mini" placeholder="排序" v-model="scope.row.sortid"></el-input>
+					</template>
+				</el-table-column>
+				<el-table-column align="center" property="datatyp" label="数据结构">
+					<template slot-scope="scope">
+						{{scope.row.datatype}}({{scope.row.length}})
+					</template>
+				</el-table-column>
+				<el-table-column :fixed="false" label="操作" align="center" width="140">
+					<template slot-scope="scope">
+						<el-button size="mini" style="padding:7px 5px" type="primary" icon="el-icon-edit-outline" @click="editor(scope.row)">修改</el-button>
+						<el-button size="mini" style="padding:7px 5px" type="danger" icon="el-icon-delete" @click="deleteField(scope.row)" >删除</el-button>
+					</template>
+				</el-table-column>
+			</el-table> 
+			<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="loadlist" />
+		</el-row>
+	</el-card>
+</div>
+
+<cms-add :show.sync="dialog.addDialogStatus" menuid="{$menu_id}" :field="field" :item_field="itemList" size="small" @refesh_list="loadlist"></cms-add>
+
+<cms-update :show.sync="dialog.updateDialogStatus" menu_id="{$menu_id}" :info="info" :field="field" :item_field="itemList" size="small" @refesh_list="loadlist"></cms-update>
+{/block}
+		
+{block name="script"}
+<script src="__PUBLIC__/components/sys/field.js"></script>
+<script src="__PUBLIC__/assets/js/Sortable.min.js"></script>
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	data() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+			},
+			menu_title:'',
+			ids: {},
+			field_titles:[],
+			single:true,
+			multiple: true,
+			list: [],
+			field:[],
+			itemList:[],
+			info:{},
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total: 50,
+			},
+		};
+	},
+	methods: {
+		editor(row) {
+			let id = row.id ? row.id : this.ids.join(',')
+			axios.post(base_url+'/Sys.Base/getFieldInfo',{id:id}).then(res => {
+				this.dialog.updateDialogStatus = true
+				this.info = res.data.data
+			})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex){
+			this.$refs.multipleTable.toggleRowSelection(row);
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		backup(){
+			location.href = base_url+'/Sys.Base/menu?appid={$appid}'
+		},
+		deleteField(row) {
+			this.$confirm('确定删除字段吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.id ? row.id : this.ids
+				axios.post(base_url+'/Sys.Base/deleteField',{id:ids,menu_id:'{$menu_id}'}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.pk_status ? '操作成功,其中主键无法删除' :'操作成功', type: 'success'})
+						this.loadlist()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		updateFieldExt(row,field){
+			axios.post(base_url+'/Sys.Base/updateFieldExt',{id:row.id,[field]:row[field]}).then(res => {
+				if(res.data.status == 200){
+					this.$message({message: '操作成功', type: 'success'})
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		updateField(row){
+			axios.post(base_url+'/Sys.Base/updateField',Object.assign(row, {field_type:1})).then(res => {
+				if(res.data.status == 200){
+					this.$message({message: '操作成功', type: 'success'})
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		loadlist() { 
+			let param = {
+				limit:this.page_data.limit,
+				page:this.page_data.page,
+				menu_id:'{$menu_id}'
+			}
+			this.loading = true
+			axios.post(base_url+'/Sys.Base/fieldList',param).then(res => {
+				this.menu_title = res.data.menu_title
+				this.list = res.data.data.data
+				this.field =  res.data.typeField
+				this.page_data.total = res.data.data.total
+				this.itemList = res.data.itemList
+				this.loading = false
+			})
+		},
+		rowDrop() {
+			const el = this.$refs.multipleTable.$el.querySelectorAll('.el-table__body-wrapper > table > tbody')[0]
+			this.sortable = Sortable.create(el, {
+				ghostClass: 'sortable-ghost',
+				setData: function (dataTransfer) {
+					dataTransfer.setData('Text', '')
+				},
+				onEnd: e => {
+					const targetRow = this.list.splice(e.oldIndex, 1)[0]
+					this.list.splice(e.newIndex, 0, targetRow)
+					let currentId = this.list[e.newIndex].id
+					let preId,nextId
+					if( this.list[e.newIndex-1]){
+						preId = this.list[e.newIndex-1].id
+					}else {
+						preId = ""
+					}
+					if( this.list[e.newIndex+1]){
+						nextId = this.list[e.newIndex+1].id
+					}else {
+						nextId = ""
+					}
+					axios.post(base_url+'/Sys.Base/updateFieldSort',{currentId:currentId,preId:preId,nextId:nextId,menu_id:'{$menu_id}'}).then(res => {
+						this.loadlist()
+						this.$message({message: '操作成功', type: 'success'})
+					})
+				}
+			})
+		},
+	},
+	mounted() {
+		this.loadlist()
+		this.rowDrop()
+	},
+})
+</script>
+{/block}

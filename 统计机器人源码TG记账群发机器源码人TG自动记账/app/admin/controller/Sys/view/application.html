@@ -1,0 +1,144 @@
+{extend name='view/common/container'}
+{block name="content"}    
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+	<el-row style="margin-bottom:10px; margin-top:11px;">
+		<el-button type="success" size="mini" icon="el-icon-plus" @click="dialog.addDialogStatus = true">新增</el-button>
+		<el-button type="primary" size="mini"  icon="el-icon-edit-outline" :disabled="single" @click="editor(ids)">修改</el-button>
+		<el-button type="warning" size="mini"  icon="el-icon-delete" :disabled="single" @click="buildApplication(ids)">生成应用</el-button>
+	</el-row>
+	
+	<el-table highlight-current-row @current-change="selection"  row-key="app_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">            
+		<el-table-column align="center" property="app_id" label="编号" width="70"></el-table-column>
+		<el-table-column align="center" property="application_name" label="应用名"></el-table-column>
+		<el-table-column align="center" property="app_dir" label="应用目录"></el-table-column>
+		<el-table-column align="center" property="app_type" label="应用类型">
+			<template slot-scope="scope">
+				<el-tag type="primary" v-if="scope.row.app_type == '1'" size="mini" effect="dark">后台应用</el-tag>
+				<el-tag type="success" v-if="scope.row.app_type == '2'" size="mini" effect="dark">api应用</el-tag>
+				<el-tag type="warning" v-if="scope.row.app_type == '3'" size="mini" effect="dark">cms应用</el-tag>
+				<el-tag type="info" v-if="scope.row.app_type == '4'" size="mini" effect="dark">空应用</el-tag>
+			</template>
+		</el-table-column>
+		<el-table-column align="center" property="status" label="生成状态">
+			<template slot-scope="scope">
+				<el-tag type="primary" v-if="scope.row.status == '1'" size="mini" effect="dark">正常</el-tag>
+				<el-tag type="danger" v-if="scope.row.status == '0'" size="mini" effect="dark">禁用</el-tag>
+			</template>
+		</el-table-column>
+		<el-table-column align="center" property="domain" label="访问域名">
+			<template slot-scope="scope">
+				<a :href="scope.row.domain" target="_blank">{{scope.row.domain}}</a>
+			</template>
+		</el-table-column>
+		<el-table-column align="center" label="操作" width="180">
+			<template slot-scope="scope">
+				<el-button size="mini" type="primary" icon="el-icon-edit-outline" @click="editor(scope.row)">修改</el-button>
+				<el-button size="mini" slot="reference" icon="el-icon-delete" @click="deleteApplication(scope.row)" type="danger">卸载</el-button>
+			</template>
+		</el-table-column>
+	</el-table>
+</el-card>
+</div>
+
+<!--添加应用弹窗-->
+<add :show.sync="dialog.addDialogStatus" @refesh_list="loadlist"></add>
+
+<!--修改应用弹窗-->
+<update :show.sync="dialog.updateDialogStatus" :info="info" @refesh_list="loadlist"></update>
+{/block}
+		
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/components/sys/application.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+			},
+			ids: {},
+			single:true,
+			multiple: true,
+			list: [],
+			info:{},
+			loading: false,
+		}
+	},
+
+	mounted(){
+		this.loadlist()
+	},
+	methods:{
+		loadlist() { 
+			this.loading = true
+			axios.post(base_url+'/Sys.Base/applicationList').then(res => {
+				if(res.status == 200){
+					this.list = res.data.data.data
+					this.loading = false
+				}
+			});
+		},
+		editor(row){
+			if(row.app_id == 1){
+				this.$message.error('该应用禁止修改!')
+				return false
+			}
+			axios.post(base_url+'/Sys.Base/getApplicationInfo',{app_id:row.app_id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true;
+					this.info = res.data.data
+				}else{
+					this.$message.error('获取信息失败!')
+				}
+			})
+		},
+		buildApplication(row){
+			if(row.app_id == 1){
+				this.$message.error('admin应用禁止生成!')
+				return false
+			}
+			this.$confirm('确定生成吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let id = row.app_id ? row.app_id : this.ids.join(',')
+				axios.post(base_url+'/Sys.Base/buildApplication',{app_id:id}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: '生成成功', type: 'success'})
+					}
+				})
+			})
+		},
+		deleteApplication(row){
+			if(row.app_id == 1){
+				this.$message.error('该应用禁止卸载!')
+				return false
+			}
+			this.$confirm('确定卸载吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				axios.post(base_url+'/Sys.Base/deleteApplication',{app_id:row.app_id}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: '操作成功', type: 'success'})
+						this.loadlist()
+					}else{
+						this.$message.error('操作失败!')
+					}
+				});
+			}).catch(() => {});
+		},
+		selection(selection) {
+			this.ids = {app_id:selection.app_id}
+			this.single = false
+		},
+	},
+})
+</script>
+{/block}

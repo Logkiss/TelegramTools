@@ -1,0 +1,83 @@
+<div id="sidebar-menu">
+	<div class="navbar-brand-box">
+		<div class="logo logo-light">
+			<span class="logo-sm">
+				<img src="__PUBLIC__/assets/images/vue.png" alt="" height="22">
+			</span>
+			<span class="logo-lg" style="font-size:16px;">
+				{:config('base_config.site_title')}
+			</span>
+		</div>
+	</div>
+	<ul class="metismenu list-unstyled" id="side-menu">
+		
+	</ul>
+</div>
+<script type="text/javascript">
+const base_url = '<?php echo getBaseUrl()?>';
+
+axios.post(base_url + '/Base/getMenu').then(res => {
+	if(res.data.status == 200){
+		Cookies.set(base_url+'breadcrumb','')
+		var str = '';
+		res.data.data.forEach(one=>{
+			if(!one.children || one.children.length == 0){
+				str += '<li><a target="iframe0" class="waves-effect j_menu" href="'+one.url+'"><i class="'+one.icon+'"></i><span key="'+one.url+'">'+one.title+'</span></a></li>'
+			}else{
+				str += '<li><a target="iframe0" class="has-arrow waves-effect" href="javascript: void(0);"><i class="'+one.icon+'"></i><span key="'+one.url+'">'+one.title+'</span></a>'
+				str += '<ul class="sub-menu" aria-expanded="false">'
+				one.children.forEach(two=>{
+					if(!two.children || two.children.length == 0){
+						str += '<li><a target="iframe0" class="waves-effect j_menu" href="'+two.url+'"><i class="'+two.icon+'"></i><span key="'+two.url+'">'+two.title+'</span></a></li>'
+					}else{
+						str += '<li><a target="iframe0" class="has-arrow waves-effect" href="javascript: void(0);"><i class="'+two.icon+'"></i><span key="'+two.url+'">'+two.title+'</span></a>'
+						str += '<ul class="sub-menu" aria-expanded="false">'
+						two.children.forEach(third=>{
+							str += '<li><a target="iframe0" class="waves-effect j_menu" href="'+third.url+'"><i class="'+third.icon+'"></i><span key="'+third.url+'">'+third.title+'</span></a></li>'
+						})
+						str += '</ul>'
+					}
+				})
+				str += '</ul>'
+				str +='</li>'
+			}
+		})
+		
+		$('#side-menu').metisMenu('dispose');
+		$("#side-menu").append(str);
+		$('#side-menu').metisMenu();
+		sessionStorage.setItem(base_url+'breadcrumb',JSON.stringify(res.data.data))
+	}
+})
+
+$(function(){
+	Cookies.set(base_url+'menu','')
+	$(document).on('click','.j_menu',function(){
+		menu = []
+		var path = {
+			title:$(this).find('span').text(),
+			url:$(this).attr('href'),
+			fullurl:$(this).attr('href'),
+		}
+				
+		if(path.title !== '首页'){
+			var noUrl = true
+			if(Cookies.get(base_url+'menu')){
+				var tags = JSON.parse(Cookies.get(base_url+'menu'))
+				tags.forEach(item=>{
+					if(item.url == path.url){
+						noUrl = false 
+					}
+				})
+				if(noUrl){
+					tags.push(path)
+					Cookies.set(base_url+'menu',JSON.stringify(tags))
+				}
+			}else{
+				menu.push(path)
+				Cookies.set(base_url+'menu',JSON.stringify(menu))
+			}
+		}
+	});
+})
+</script>

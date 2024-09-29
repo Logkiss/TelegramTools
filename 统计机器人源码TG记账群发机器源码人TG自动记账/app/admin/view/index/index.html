@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{:config('base_config.site_title')}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="__PUBLIC__/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+<link href="__PUBLIC__/assets/css/app.min.css" rel="stylesheet" type="text/css" />
+<link href="__PUBLIC__/assets/element/index.css" rel="stylesheet">
+<script src="__PUBLIC__/assets/js/axios.min.js"></script>
+<script src="__PUBLIC__/assets/libs/jquery/jquery.min.js"></script>
+<script src="__PUBLIC__/assets/element/vue.js"></script>
+<script src="__PUBLIC__/assets/js/js.cookie.min.js"></script>
+<script>Vue.config.productionTip = false</script>
+<style>
+html,
+body {
+    height: 100%;
+}
+
+body.full-height-layout layout-wrapper,{
+    height: 100%;
+}
+#content-main {
+    height: calc(100% - 100px);
+    overflow: hidden;
+}
+</style>
+</head>
+
+<body class="full-height-layout" style="height:100%; overflow:hidden" data-sidebar="dark">
+<div id="layout-wrapper" style="height:100%">
+	<div class="vertical-menu">
+		<div data-simplebar style="height: 100%!important">
+			{include file="common/left"}
+		</div>
+	</div>
+	<div id="content-main" class="main-content" style="height:100%">
+		<iframe class="J_iframe" name="iframe0" width="100%" height="100%" src="{:url('admin/Index/main')}" frameborder="0" data-id="{:url('admin/Index/main')}" seamless></iframe>
+	</div>
+</div>
+<div class="menubar-overlay"></div>
+<script src="__PUBLIC__/assets/libs/metismenu/metisMenu.min.js"></script>
+<script src="__PUBLIC__/assets/libs/simplebar/simplebar.min.js"></script>
+<script src="__PUBLIC__/assets/js/app.js"></script>
+</body>
+</html>

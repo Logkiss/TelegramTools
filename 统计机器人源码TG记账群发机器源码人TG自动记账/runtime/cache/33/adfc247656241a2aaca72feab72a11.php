@@ -1,0 +1,4 @@
+<?php
+//000000000060
+ exit();?>
+a:11:{i:0;a:3:{s:2:"id";i:1;s:4:"name";s:10:"site_title";s:4:"data";s:17:"TG统计机器人";}i:1;a:3:{s:2:"id";i:2;s:4:"name";s:4:"logo";s:4:"data";s:39:"/uploads/admin/202203/622b001247920.png";}i:2;a:3:{s:2:"id";i:3;s:4:"name";s:7:"keyword";s:4:"data";s:0:"";}i:3;a:3:{s:2:"id";i:4;s:4:"name";s:7:"descrip";s:4:"data";s:0:"";}i:4;a:3:{s:2:"id";i:5;s:4:"name";s:9:"copyright";s:4:"data";s:0:"";}i:5;a:3:{s:2:"id";i:6;s:4:"name";s:8:"filesize";s:4:"data";s:3:"100";}i:6;a:3:{s:2:"id";i:7;s:4:"name";s:8:"filetype";s:4:"data";s:66:"gif,png,jpg,jpeg,doc,docx,xls,xlsx,csv,pdf,rar,zip,txt,mp4,flv,wgt";}i:7;a:3:{s:2:"id";i:8;s:4:"name";s:12:"water_status";s:4:"data";s:1:"0";}i:8;a:3:{s:2:"id";i:9;s:4:"name";s:14:"water_position";s:4:"data";s:1:"5";}i:9;a:3:{s:2:"id";i:10;s:4:"name";s:6:"domain";s:4:"data";s:22:"https://11.fanlipt.com";}i:10;a:3:{s:2:"id";i:20;s:4:"name";s:11:"water_alpha";s:4:"data";s:2:"90";}}

@@ -1,0 +1,72 @@
+{extend name='view/common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" class="card" style="min-height:650px;">
+	<el-form size="small" ref="form" :model="form" :rules="rules" label-width="90px" >
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="appid" prop="appid">
+							<el-input  v-model="form.appid" autoComplete="off" clearable  placeholder="请输入appid"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="secrect" prop="secrect">
+							<el-input  v-model="form.secrect" autoComplete="off" clearable  placeholder="请输入secrect"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+		<el-form-item>
+			<el-button size="small" type="primary" @click="submit">保存设置</el-button>
+		</el-form-item>
+	</el-form>
+</el-card>
+</div>
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data(){
+		return {
+			form: {
+				appid:'',
+				secrect:'',
+			},
+			loading:false,
+			rules: {
+			}
+		}
+	},
+	mounted(){
+		axios.post(base_url + '/Sys.Base/getSecrectInfo').then(res => {
+			if(res.data.status == 200){
+				this.form = JSON.stringify(res.data.data) == '[]' ? {} : res.data.data
+			}
+		})
+	},
+	methods: {
+		submit(){
+			this.$refs['form'].validate(valid => {
+				if(valid) {
+					this.loading = true
+					axios.post(base_url + '/Sys.Base/secrect',this.form).then(res => {
+						if(res.data.status == 200){
+							this.$message({message: res.data.msg, type: 'success'})
+						}else{
+							this.$message.error(res.data.msg)
+						}
+					}).catch(()=>{
+						this.loading = false
+					})
+				}
+			})
+		},
+	}
+})
+</script>
+{/block}

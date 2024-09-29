@@ -1,0 +1,288 @@
+{extend name='view/common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+	<el-card shadow="never" style="min-height:650px;">
+		<el-row>
+			<el-menu :default-active="active.toString()" class="el-menu-demo" mode="horizontal">
+				<el-menu-item @click="selectmenu(item)" v-for="item in app_list" :key="item.app_id" :index="item.app_id.toString()">
+					{{item.app_type == 3 ? item.application_name+'内容模型' : item.application_name}}
+				</el-menu-item>
+			</el-menu>
+		</el-row>
+		<el-row style="margin-bottom:10px; margin-top:11px;">
+			<el-col :span="21">
+				<el-button type="success" size="mini" icon="el-icon-plus" @click="dialog.addAdminDialogStatus = true">创建</el-button>
+				<el-button type="danger" size="mini" icon="el-icon-delete"  @click="deleteMenu()">卸载</el-button>
+				<el-button type="warning" size="mini"  icon="el-icon-plus" :disabled="single" @click="field">字段管理</el-button>  
+				<el-button type="warning" size="mini"  icon="el-icon-plus" :disabled="single" @click="action">方法管理</el-button>
+				<el-button type="info" size="mini"  icon="el-icon-edit-outline" :disabled="single" @click="create">生成代码</el-button>
+				<el-select size="small" style="margin-left:5px; width:120px;" class="select" clearable v-model="appid" placeholder="菜单复制到">
+					<el-option v-for="(item,i) in copy_app_list" :key="i" :label="item.application_name" :value="item.app_id"></el-option>
+				</el-select>
+				<el-button type="primary" size="mini" style="margin-left:5px;" icon="el-icon-check" @click="copyMenu()">确定</el-button>
+				<el-select size="small" style="margin-left:5px; width:130px" class="select" @change="selectConnect" v-model="connect" placeholder="请选择链接库">
+					<el-option v-for="item in connects" :key="item" :label="item" :value="item"></el-option>
+				</el-select>
+				<el-select size="small" style="margin-left:5px; width:130px" class="select" v-model="tablename" placeholder="请选择表生成">
+					<el-option v-for="(item,i) in tableList" :key="i" :label="item" :value="item"></el-option>
+				</el-select>
+				<el-button type="primary" size="mini" style="margin-left:5px;" icon="el-icon-check" @click="createByTable">生成</el-button>
+			</el-col>
+			<el-col :span="3" style="text-align:right">
+				<table-tool :expand_status="true" :expand="expand" @toggle="toggleRowExpansion" @refesh_list="loadlist" ></table-tool>
+			</el-col>
+		</el-row>
+
+		<el-table :header-cell-style="{ background: '#eef1f6', color: '#606266' }" v-loading="loading" highlight-current-row :default-expand-all="expand" @current-change="handleCurrentChange" :tree-props="{children: 'children'}" row-key="menu_id" ref="multipleTable" border class="eltable" :data="list"   style="width: 100%">
+			<el-table-column property="menu_id" align="center" type='' label="编号" width="70"></el-table-column>
+			<el-table-column property="title" width="240" label="菜单名称"></el-table-column>
+			<el-table-column property="controller_name" label="控制器名"></el-table-column>
+			<el-table-column property="table_name" label="数据表名"></el-table-column>
+			<el-table-column align="center" property="create_code" label="生成代码">
+				<template slot-scope="scope">
+					<el-switch :active-value="1" :inactive-value="0" @change="update(scope.row,'create_code')" v-model="scope.row.create_code"></el-switch>
+				</template>
+			</el-table-column>
+			<el-table-column align="center" property="status" label="菜单显示">
+				<template slot-scope="scope">
+					<el-switch :active-value="1" :inactive-value="0" @change="update(scope.row,'status')" v-model="scope.row.status"></el-switch>
+				</template>
+			</el-table-column>
+			<el-table-column align="center" property="create_table" label="创建数据库表">
+				<template slot-scope="scope">
+					<el-tag size="mini" :type="scope.row.create_table=='1'?'success':'info'" effect="dark">{{ scope.row.create_table == '1' ? '是' : '否' }}</el-tag>
+				</template>
+			</el-table-column>
+			<el-table-column width="90" align="center" property="sortid" label="排序">
+				<template slot-scope="scope">
+					<el-input style="width:60px;" size="mini" placeholder="排序" @blur.stop="update(scope.row,'sortid')" v-model="scope.row.sortid"></el-input>
+				</template>
+			</el-table-column>
+			<el-table-column label="操作" align="center" width="180">
+				<template slot-scope="scope">
+					<el-button size="mini" @click="editorAdmin(scope.row)" icon="el-icon-edit-outline" type="primary" >修改</el-button>
+					<el-button size="mini" @click="deleteMenu(scope.row)" icon="el-icon-delete" type="danger">卸载</el-button>
+				</template>
+			</el-table-column>
+		</el-table>
+	</el-card>
+</div>
+
+<admin-add :show.sync="dialog.addAdminDialogStatus" app_id="{$appid}" :page_type_list="page_type_list" :list="list" :connects="connects" size="small" @refesh_list="loadlist"></admin-add>
+
+<admin-update :show.sync="dialog.updateAdminDialogStatus" :info="info" :page_type_list="page_type_list" app_id="{$appid}" :list="list" :connects="connects"  size="small" @refesh_list="loadlist"></admin-update>
+{/block}
+		
+{block name="script"}
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/components/sys/menu.js"></script>
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	data() {
+		return {
+			dialog: {
+				addAdminDialogStatus : false,
+				updateAdminDialogStatus : false,
+			},
+			expand:true,
+			id:'',
+			single:true,
+			list: [],
+			connects:[],
+			connect:'',
+			tablename:'',
+			tableList:[],
+			page_type_list:[],
+			app_type:1,
+			app_list:[],
+			copy_app_list:[],
+			info:{},
+			appid:'',
+			loading: false,
+			active:'{$appid}'
+		};
+	},
+	methods: {
+		editorAdmin(row) {
+			axios.post(base_url+'/Sys.Base/getMenuInfo',{menu_id:row.menu_id}).then(res => {
+				this.dialog.updateAdminDialogStatus = true
+				this.info = res.data.data
+			})
+		},
+		selectmenu(val){
+			var path = {
+				title:'菜单管理',
+				url:base_url+'/Sys.Base/menu',
+				fullurl:base_url+'/Sys.Base/menu?appid='+val.app_id
+			}
+			this.setTags(path)
+			location.href = path.fullurl
+		},
+		field(){
+			var path = {
+				title:'字段管理',
+				url:base_url+'/Sys.Base/fieldList',
+				fullurl:base_url+'/Sys.Base/fieldList?menu_id='+this.id+'&appid={$appid}'
+			}
+			this.setTags(path)
+			location.href = path.fullurl
+		},
+		action(){
+			var path = {
+				title:'方法管理',
+				url:base_url+'/Sys.Base/actionList',
+				fullurl:base_url+'/Sys.Base/actionList?menu_id='+this.id+'&appid={$appid}'
+			}
+			this.setTags(path)
+			location.href = path.fullurl
+		},
+		setTags(path){
+			var noUrl = true
+			var changeData = false
+			if(Cookies.get('menu')){
+				var tags = JSON.parse(Cookies.get('menu'))
+				tags.forEach(item=>{
+					if(item.url == path.url){
+						noUrl = false 
+						if(item.fullurl !== path.fullurl){
+							changeData = true
+						}
+					}
+				})
+				if(noUrl){
+					tags.push(path)
+					Cookies.set('menu',JSON.stringify(tags))
+				}
+				
+				if(changeData){
+					tags.forEach(item=>{
+						if(item.url == path.url){
+							item.fullurl = path.fullurl
+						}
+					})
+					Cookies.set('menu',JSON.stringify(tags))
+				}
+			}
+		},
+		handleCurrentChange(val) {
+			this.id = val.menu_id
+			this.single = false
+		},
+		toggleRowExpansion(){
+			this.expand = !this.expand
+			this.list.forEach(item=>{
+				this.$refs.multipleTable.toggleRowExpansion(item,this.expand)
+			})
+		},
+		selectConnect(val){
+			axios.post(base_url+'/Sys.Base/getTables',{connect:this.connect}).then(res => {
+				this.tableList = res.data.data
+			})
+		},
+		deleteMenu() {
+			this.$confirm('确定卸载吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				axios.post(base_url+'/Sys.Base/deleteMenu',{menu_id:this.id}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: '操作成功', type: 'success'})
+						this.loadlist()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+					
+				})
+			}).catch(() => {})
+		},
+		update(row,field){
+			axios.post(base_url+'/Sys.Base/updateMenuExt',{menu_id:row.menu_id,[field]:row[field]}).then(res => {
+				if(res.data.status == 200){
+					this.$message({message: '操作成功', type: 'success'})
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		create(){
+			this.$confirm('确定生成吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				axios.post(base_url+'/Sys.Base/create',{menu_id:this.id}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: '操作成功', type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		createByTable(){
+			if(this.tablename == ''){
+				this.$message.error('请选择生成表')
+			}else{
+				this.$confirm('确定生成吗?', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+					type: 'warning'
+				}).then(() => {
+					if(this.connect == ''){
+						this.connect = 'mysql'
+					}
+					axios.post(base_url+'/Sys.Base/createByTable',{connect:this.connect,table_name:this.tablename,app_id:'{$appid}',app_type:this.app_type}).then(res => {
+						if(res.data.status == 200){
+							this.$message({message: '操作成功', type: 'success'})
+							this.loadlist()
+						}else{
+							this.$message.error(res.data.msg)
+						}
+					})
+				}).catch(() => {})
+			}
+		},
+		copyMenu(){
+			if(this.id == '' || this.appid == ''){
+				this.$message.error('请选择菜单或者应用')
+			}else{
+				this.$confirm('确定生成吗?', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+					type: 'warning'
+				}).then(() => {
+					axios.post(base_url+'/Sys.Base/copyMenu',{appid:this.appid,menu_id:this.id}).then(res => {
+						if(res.data.status == 200){
+							this.$message({message: '操作成功', type: 'success'})
+							this.loadlist()
+						}else{
+							this.$message.error(res.data.msg)
+						}
+					})
+				}).catch(() => {})
+			}
+		},
+		loadlist() { 
+			this.loading = true
+			axios.post(base_url+'/Sys.Base/menu',{app_id:'{$appid}'}).then(res => {
+				this.list = res.data.list
+				this.connects = res.data.connects
+				//this.connect = res.data.defaultConnect
+				this.tableList = res.data.tableList
+				this.app_list = res.data.app_list
+				this.copy_app_list = res.data.app_list.filter(item=>item.app_type !== 3)
+				this.page_type_list = res.data.page_type_list
+				this.loading = false
+			})
+		},
+	},
+	mounted() {
+		this.loadlist()
+	},
+})
+</script>
+{/block}

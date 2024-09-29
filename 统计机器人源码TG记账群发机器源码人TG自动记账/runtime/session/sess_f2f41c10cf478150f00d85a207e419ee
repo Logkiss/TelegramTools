@@ -1,0 +1,1 @@
+a:2:{s:5:"admin";a:9:{s:7:"user_id";i:1;s:4:"name";s:2:"TG";s:8:"username";s:5:"admin";s:6:"status";i:1;s:13:"user_role_ids";i:1;s:7:"role_id";i:1;s:9:"role_name";s:15:"超级管理员";s:11:"role_status";i:1;s:6:"access";a:1:{i:0;s:0:"";}}s:10:"admin_sign";s:40:"38d84744ff7a529ce9007ce491b6c31ecff8c77c";}

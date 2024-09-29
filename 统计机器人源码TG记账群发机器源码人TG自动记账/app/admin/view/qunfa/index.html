@@ -1,0 +1,104 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" class="card" style="min-height:650px;">
+	<el-form size="small" ref="form" :model="form" :rules="rules" label-width="90px" >
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="选择群" prop="type">
+							<el-select multiple style="width:100%" v-model="form.group" filterable clearable placeholder="请选择选择群">
+								<el-option v-for="(item,i) in groups" :key="i" :label="item.key" :value="item.val.toString()"></el-option>
+							</el-select>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="选择群分类" prop="type">
+							<el-select multiple style="width:100%" v-model="form.fenlei" filterable clearable placeholder="请选择选择群分类">
+								<el-option v-for="(item,i) in fenleis" :key="i" :label="item.key" :value="item.val.toString()"></el-option>
+							</el-select>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="公告图片" prop="img">
+							<Upload size="small"  upload_type="2" file_ext="png,jpg,jpeg,gif" file_type="image" :image.sync="form.img"></Upload>
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-row >
+					<el-col :span="24">
+						<el-form-item label="公告内容" prop="msg">
+							<el-input  v-model="form.msg" autoComplete="off" clearable  placeholder="请输入公告内容"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+		<el-form-item>
+			<el-button size="small" type="primary" @click="submit">发送公告</el-button>
+		</el-form-item>
+	</el-form>
+</el-card>
+</div>
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data(){
+		return {
+			form: {
+				group:[],
+				fenlei:[],
+				img:'',
+				msg:'',
+			},
+			groups:[],
+			fenleis:[],
+			loading:false,
+			rules: {
+			}
+		}
+	},
+	mounted(){
+		axios.post(base_url + '/Qunfa/getInfo').then(res => {
+			if(res.data.status == 200){
+				this.form = JSON.stringify(res.data.data) == '[]' ? {} : res.data.data
+				this.groups = res.data.sql_field_data.groups
+				this.fenleis = res.data.sql_field_data.fenleis
+				this.setDefaultVal('group')
+				this.setDefaultVal('fenlei')
+			}
+		})
+	},
+	methods: {
+		submit(){
+			this.$refs['form'].validate(valid => {
+				if(valid) {
+					this.loading = true
+					axios.post(base_url + '/Qunfa/index',this.form).then(res => {
+						if(res.data.status == 200){
+							this.$message({message: res.data.msg, type: 'success'})
+						}else{
+							this.loading = false
+							this.$message.error(res.data.msg)
+						}
+					}).catch(()=>{
+						this.loading = false
+					})
+				}
+			})
+		},
+		setDefaultVal(key){
+			if(this.form[key] == null || this.form[key] == ''){
+				this.form[key] = []
+			}
+		},
+	}
+})
+</script>
+{/block}
